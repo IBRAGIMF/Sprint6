@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -43,13 +44,17 @@ var tasks = map[string]Task{
 // Обработчик для получения всех задач
 func getTasks(w http.ResponseWriter, r *http.Request) {
 	resp, err := json.Marshal(tasks)
+
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write(resp)
+	if _, err := w.Write(resp); err != nil {
+		log.Println(err)
+	}
 }
 
 // Обработчик для отправки задачи на сервер
@@ -66,6 +71,12 @@ func postTasks(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+
+	if _, exists := tasks[task.ID]; exists {
+		http.Error(w, "ID exists", http.StatusBadRequest)
+		return
+	}
+
 	tasks[task.ID] = task
 
 	w.Header().Set("Content-Type", "application/json")
